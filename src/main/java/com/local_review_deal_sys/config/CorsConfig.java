@@ -14,7 +14,7 @@ public class CorsConfig {
             @Override
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/**")           // 所有接口
-                        .allowedOrigins("http://localhost:5173") // 前端地址
+                        .allowedOrigins("http://localhost:8080") // 前端地址
                         .allowedMethods("*")         // GET, POST, PUT, DELETE ...
                         .allowCredentials(true);    // 如果要发送 Cookie
             }
