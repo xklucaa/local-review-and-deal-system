@@ -9,11 +9,13 @@ import com.local_review_deal_sys.entity.Shop;
 import com.local_review_deal_sys.mapper.ShopMapper;
 import com.local_review_deal_sys.service.IShopService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.local_review_deal_sys.utils.CacheClient;
 import com.local_review_deal_sys.utils.RedisData;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.annotation.Resource;
 import javax.sql.DataSource;
 import java.time.LocalDateTime;
 import java.util.concurrent.ExecutorService;
@@ -24,50 +26,32 @@ import static com.local_review_deal_sys.utils.RedisConstants.*;
 
 @Service
 public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IShopService {
-    private final StringRedisTemplate stringRedisTemplate;
-    private final DataSource dataSource;
+    @Resource
+    private StringRedisTemplate stringRedisTemplate;
 
-    public ShopServiceImpl(StringRedisTemplate stringRedisTemplate, DataSource dataSource) {
-        this.stringRedisTemplate = stringRedisTemplate;
-        this.dataSource = dataSource;
-    }
+    @Resource
+    private DataSource dataSource;
+
+    @Resource
+    private CacheClient cacheClient;
+
+//    public ShopServiceImpl(StringRedisTemplate stringRedisTemplate, DataSource dataSource) {
+//        this.stringRedisTemplate = stringRedisTemplate;
+//        this.dataSource = dataSource;
+//    }
 
     @Override
     public Result queryById(Long id) {
-//        If Use pass through, the code below with annotation is unnecessary
-//        String shopKey = CACHE_SHOP_KEY + id;
-////        1.Search shop cache from Redis
-//        String shopJson= stringRedisTemplate.opsForValue().get(shopKey);
-////        2.Judge if exist in the cache
-//        if (StrUtil.isNotBlank(shopJson)){
-//            //        3.If exists, return
-//            Shop shop = JSONUtil.toBean(shopJson, Shop.class);
-//            return Result.ok(shop);
-//        }
-////        Judge if the target is null
-//        if (shopJson != null){
-////            Return error message
-//            return Result.fail("Shop not found");
-//        }
-//            //        4.If not exist, search from database by id
-//            Shop shop = getById(id);
-//            //        5.If still not exists, return false
-//            if (shop == null) {
-////            Write the null into Redis
-//                stringRedisTemplate.opsForValue().set(shopKey, "", CACHE_NULL_TTL, TimeUnit.MINUTES);
-////            Return error message
-//                return Result.fail("Shop not found");
-//            }
-//                //        6.If exists in database, return data and write into Redis
-//                stringRedisTemplate.opsForValue().set(shopKey, JSONUtil.toJsonStr(shop), CACHE_SHOP_TTL, TimeUnit.MINUTES);
-
-//        Cache penetration
-//        Shop shop = queryWithPassThrough(id);
+//        Resolve cache penetration
+//        Shop shop = cacheClient.queryWithPassThrough(CACHE_SHOP_TTL, TimeUnit.MINUTES, CACHE_SHOP_KEY, id, Shop.class,this::getById);
 
 //        Use mutex to solve the problem of cache penetration
 //        Shop shop = queryWithMutex(id);
+
 //        Use logic expire to solve the problem of cache penetration
-        Shop shop = queryWithLogicalExpire(id);
+        Shop shop = cacheClient
+                .queryWithLogicalExpire(CACHE_SHOP_KEY, id, Shop.class,this::getById, CACHE_SHOP_TTL, TimeUnit.MINUTES);
+
         if (shop == null){
             return Result.fail("Error: Shop not found !");
         }
@@ -175,36 +159,36 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
     }
 
 //  Implement with  Lock
-    public Shop queryWithPassThrough(Long id){
-        String shopKey = CACHE_SHOP_KEY + id;
-//        1.Search shop cache from Redis
-        String shopJson= stringRedisTemplate.opsForValue().get(shopKey);
-//        2.Judge if exist in the cache
-        if (StrUtil.isNotBlank(shopJson)){
-            //        3.If exists, return
-            return JSONUtil.toBean(shopJson, Shop.class);
-        }
-//        Judge if the target is null
-        if (shopJson != null){
-//            Return error message
-            return null;
-        }
-        //        4.If not exist, search from database by id
-        Shop shop = getById(id);
-        //        5.If still not exists, return false
-        if (shop == null) {
-//            Write the null into Redis
-            stringRedisTemplate.opsForValue().set(shopKey, "", CACHE_NULL_TTL, TimeUnit.MINUTES);
-//            Return error message
-            return null;
-        }
-        //        6.If exists in database, return data and write into Redis
-        stringRedisTemplate.opsForValue().set(shopKey, JSONUtil.toJsonStr(shop), CACHE_SHOP_TTL, TimeUnit.MINUTES);
-
-
-//        7.Return
-        return shop;
-    }
+//    public Shop queryWithPassThrough(Long id){
+//        String shopKey = CACHE_SHOP_KEY + id;
+////        1.Search shop cache from Redis
+//        String shopJson= stringRedisTemplate.opsForValue().get(shopKey);
+////        2.Judge if exist in the cache
+//        if (StrUtil.isNotBlank(shopJson)){
+//            //        3.If exists, return
+//            return JSONUtil.toBean(shopJson, Shop.class);
+//        }
+////        Judge if the target is null
+//        if (shopJson != null){
+////            Return error message
+//            return null;
+//        }
+//        //        4.If not exist, search from database by id
+//        Shop shop = getById(id);
+//        //        5.If still not exists, return false
+//        if (shop == null) {
+////            Write the null into Redis
+//            stringRedisTemplate.opsForValue().set(shopKey, "", CACHE_NULL_TTL, TimeUnit.MINUTES);
+////            Return error message
+//            return null;
+//        }
+//        //        6.If exists in database, return data and write into Redis
+//        stringRedisTemplate.opsForValue().set(shopKey, JSONUtil.toJsonStr(shop), CACHE_SHOP_TTL, TimeUnit.MINUTES);
+//
+//
+////        7.Return
+//        return shop;
+//    }
 
 
 
