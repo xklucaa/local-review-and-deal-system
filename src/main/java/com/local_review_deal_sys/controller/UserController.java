@@ -4,14 +4,12 @@ package com.local_review_deal_sys.controller;
 import com.local_review_deal_sys.dto.LoginFormDTO;
 import com.local_review_deal_sys.dto.Result;
 import com.local_review_deal_sys.dto.UserDTO;
-import com.local_review_deal_sys.entity.User;
 import com.local_review_deal_sys.entity.UserInfo;
 import com.local_review_deal_sys.service.IUserInfoService;
 import com.local_review_deal_sys.service.IUserService;
 import com.local_review_deal_sys.utils.UserHolder;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
-
 import javax.annotation.Resource;
 import javax.servlet.http.HttpSession;
 
@@ -27,10 +25,6 @@ public class UserController {
     @Resource
     private IUserInfoService userInfoService;
 
-    /**
-     * 发送手机验证码
-     * 为什么是postmapping而不是get
-     */
     @PostMapping("code")
     public Result sendCode(@RequestParam("phone") String phone, HttpSession session) {
         // send code and store the code in session
