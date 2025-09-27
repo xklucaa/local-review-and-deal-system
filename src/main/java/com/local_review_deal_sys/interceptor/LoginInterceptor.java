@@ -29,7 +29,7 @@ public class LoginInterceptor implements HandlerInterceptor{
         }
 
         //if exists, then store the user in ThreadLocal
-        UserHolder.saveUser((User) user);
+        UserHolder.saveUser((UserDTO) user);
 
         //continue
         return true;

@@ -1,8 +1,10 @@
 package com.local_review_deal_sys.service.impl;
 
+import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.RandomUtil;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.local_review_deal_sys.dto.Result;
+import com.local_review_deal_sys.dto.UserDTO;
 import com.local_review_deal_sys.entity.User;
 import com.local_review_deal_sys.mapper.UserMapper;
 import com.local_review_deal_sys.service.IUserService;
@@ -13,7 +15,6 @@ import com.local_review_deal_sys.dto.LoginFormDTO;
 
 import javax.servlet.http.HttpSession;
 
-import java.util.Collections;
 
 import static com.local_review_deal_sys.utils.SystemConstants.USER_NICK_NAME_PREFIX;
 
@@ -75,7 +76,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
             user = createUserWithPhone(phone);
         }
         //6. if the user exists, then store the user to session
-        session.setAttribute("user", user);
+        session.setAttribute("user", BeanUtil.copyProperties(user, UserDTO.class));
 
         return Result.ok();
     }
