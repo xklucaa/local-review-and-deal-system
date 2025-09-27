@@ -33,14 +33,17 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
 
         //store the code in session
         session.setAttribute("code", code);
-        // 在 login 方法开始处添加
 
+        /*
+        just for test, the session get from frontend is different at first. (solved)
         log.debug("Session ID: {}", session.getId());
         log.debug("All session attributes: {}", Collections.list(session.getAttributeNames()));
+         */
+
 
         //send the code to the phone number
 
-        //暂时是用模拟的来做的，还需要继续完善
+        //暂时是用模拟的来做的，还需要继续完善,试试看发到邮箱
 
         log.debug("Send verification code successfully, code is {}", code);
         return Result.ok();
