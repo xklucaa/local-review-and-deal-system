@@ -47,5 +47,44 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
     }
 
 
+    @Override
+    public Result login(LoginFormDTO loginForm, HttpSession session) {
+        String phone = loginForm.getPhone();
+        //1. check the phone number(防止用户收到验证码后又自己换了个手机号)
+        if (RegexUtils.isPhoneInvalid(phone)) {
+            //if phone number is invalid, return a failure message
+            return Result.fail("Invalid phone number");
+        }
+
+        //2. check the verification code
+        Object cacheCode = session.getAttribute("code");
+        String code = loginForm.getCode();
+        if (cacheCode == null || !cacheCode.toString().equals(code)) {
+            //3. if not true, then return a failure message
+            return Result.fail("Invalid verification code");
+        }
+
+        //4. if true, then query the user by the phone number
+        User user = query().eq("phone", phone).one();
+
+        //5. if the user does not exist, then create a new user and store it to DB and session
+        if(user == null){
+            user = createUserWithPhone(phone);
+        }
+        //6. if the user exists, then store the user to session
+        session.setAttribute("user", user);
+
+        return Result.ok();
+    }
+
+    private User createUserWithPhone(String phone) {
+        //create user
+        User user = new User();
+        user.setPhone(phone);
+        user.setNickName(USER_NICK_NAME_PREFIX  + RandomUtil.randomString(10));
+        //save the suer to DB
+        save(user);
+        return user;
+    }
 
 }
