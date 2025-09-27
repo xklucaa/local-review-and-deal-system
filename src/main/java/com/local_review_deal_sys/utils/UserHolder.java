@@ -1,6 +1,7 @@
 package com.local_review_deal_sys.utils;
 
 import com.local_review_deal_sys.dto.UserDTO;
+import com.local_review_deal_sys.entity.User;
 
 public class UserHolder {
     private static final ThreadLocal<UserDTO> tl = new ThreadLocal<>();
