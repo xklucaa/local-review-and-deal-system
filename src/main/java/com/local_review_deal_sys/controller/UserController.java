@@ -1,8 +1,11 @@
 package com.local_review_deal_sys.controller;
 
 
+import cn.hutool.core.bean.BeanUtil;
 import com.local_review_deal_sys.dto.LoginFormDTO;
 import com.local_review_deal_sys.dto.Result;
+import com.local_review_deal_sys.dto.UserDTO;
+import com.local_review_deal_sys.entity.User;
 import com.local_review_deal_sys.entity.UserInfo;
 import com.local_review_deal_sys.service.IUserInfoService;
 import com.local_review_deal_sys.service.IUserService;
@@ -71,5 +74,17 @@ public class UserController {
         info.setUpdateTime(null);
         // 返回
         return Result.ok(info);
+    }
+
+    @GetMapping("/{id}")
+    public Result queryUserById(@PathVariable("id") Long userId){
+        // 查询详情
+        User user = userService.getById(userId);
+        if (user == null) {
+            return Result.ok();
+        }
+        UserDTO userDTO = BeanUtil.copyProperties(user, UserDTO.class);
+        // 返回
+        return Result.ok(userDTO);
     }
 }
