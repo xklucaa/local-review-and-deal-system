@@ -1,5 +1,6 @@
 package com.local_review_deal_sys.service;
 
+import com.local_review_deal_sys.dto.Result;
 import com.local_review_deal_sys.entity.Shop;
 import com.baomidou.mybatisplus.extension.service.IService;
 
@@ -11,4 +12,5 @@ import com.baomidou.mybatisplus.extension.service.IService;
  */
 public interface IShopService extends IService<Shop> {
 
+    Result queryShopByType(Integer typeId, Integer current, Double x, Double y);
 }
