@@ -1,8 +1,5 @@
 package com.local_review_deal_sys.service.impl;
 
-import cn.hutool.core.util.BooleanUtil;
-import cn.hutool.core.util.StrUtil;
-import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
 import com.local_review_deal_sys.dto.Result;
 import com.local_review_deal_sys.entity.Shop;
@@ -16,10 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
-import javax.sql.DataSource;
 import java.time.LocalDateTime;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import static com.local_review_deal_sys.utils.RedisConstants.*;
@@ -29,12 +23,12 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
     @Resource
     private StringRedisTemplate stringRedisTemplate;
 
-    @Resource
-    private DataSource dataSource;
+//    @Resource
+//    private DataSource dataSource;
 
     @Resource
     private CacheClient cacheClient;
-    
+
 
     @Override
     public Result queryById(Long id) {
@@ -58,7 +52,7 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
 
 
 
-    public void saveShopToRedis(Long id , long expireSeconds) throws InterruptedException {
+    public void saveShopToRedis(Long id , long expireSeconds) {
 //        1.Search shop data
         Shop shop = getById(id);
 //        Thread.sleep(200);
