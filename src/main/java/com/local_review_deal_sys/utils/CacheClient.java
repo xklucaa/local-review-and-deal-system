@@ -88,8 +88,6 @@ public class CacheClient {
         LocalDateTime expireTime = redisData.getExpireTime();
         //        5. Judge if expired
         if (expireTime.isAfter(LocalDateTime.now())) {
-
-
             //        5.1 If not expired, return shop info
             return r;
         }
