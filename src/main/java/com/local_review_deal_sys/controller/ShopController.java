@@ -26,7 +26,8 @@ public class ShopController {
      */
     @GetMapping("/{id}")
     public Result queryShopById(@PathVariable("id") Long id) {
-        return Result.ok(shopService.getById(id));
+//        return Result.ok(shopService.getById(id));
+        return shopService.queryById(id);
     }
 
     /**
@@ -34,6 +35,7 @@ public class ShopController {
      * @param shop 商铺数据
      * @return 商铺id
      */
+
     @PostMapping
     public Result saveShop(@RequestBody Shop shop) {
         // 写入数据库
@@ -50,8 +52,9 @@ public class ShopController {
     @PutMapping
     public Result updateShop(@RequestBody Shop shop) {
         // 写入数据库
-        shopService.updateById(shop);
-        return Result.ok();
+//        shopService.updateById(shop);
+//        return Result.ok();
+        return shopService.update(shop);
     }
 
     /**
