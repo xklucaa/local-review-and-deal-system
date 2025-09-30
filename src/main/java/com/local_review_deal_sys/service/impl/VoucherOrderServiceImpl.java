@@ -104,7 +104,7 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
     @Transactional
     public void createVoucherOrder(VoucherOrder voucherOrder) {
         //5.一人一单
-        Long userId = UserHolder.getUser().getId();
+        Long userId = voucherOrder.getId();
 
         //5.1查询订单
         int count = query().eq("user_id", userId).eq("voucher_id", voucherOrder.getVoucherId()).count();
@@ -132,8 +132,7 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
 
     @Override
     public Result seckillVoucher(Long voucherId) {
-        //Long userId = UserHolder.getUser().getId();
-        Long userId = 2L;
+        Long userId = UserHolder.getUser().getId();
         // 1.执行lua脚本
         Long result = stringRedisTemplate.execute(
                 SECKILL_SCRIPT,

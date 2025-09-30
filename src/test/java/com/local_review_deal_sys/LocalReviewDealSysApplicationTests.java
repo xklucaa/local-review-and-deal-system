@@ -3,6 +3,7 @@ package com.local_review_deal_sys;
 import com.local_review_deal_sys.entity.Shop;
 import com.local_review_deal_sys.service.impl.ShopServiceImpl;
 import com.local_review_deal_sys.utils.CacheClient;
+import com.local_review_deal_sys.utils.UserHolder;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
@@ -22,9 +23,8 @@ class LocalReviewDealSysApplicationTests {
     private ShopServiceImpl shopService;
     @Test
     void testSaveShop() throws InterruptedException {
-        shopService.saveShopToRedis(1L, 10L);
-        Shop shop = shopService.getById(1L);
-        cacheClient.setWithLogicalExpire(CACHE_SHOP_KEY +1L, shop, 10L, TimeUnit.SECONDS);
+        Long id= UserHolder.getUser().getId();
+        System.out.println(id);
     }
 
 }
