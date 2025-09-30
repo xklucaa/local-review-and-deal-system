@@ -165,7 +165,7 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IB
         // 4.解析数据：blogId、minTime（时间戳）、offset
         List<Long> ids = new ArrayList<>(typedTuples.size());
         long minTime = 0; // 2
-git        int os = 1; // 2
+        int os = 1; // 2
         for (ZSetOperations.TypedTuple<String> tuple : typedTuples) { // 5 4 4 2 2
             // 4.1.获取id
             ids.add(Long.valueOf(tuple.getValue()));
