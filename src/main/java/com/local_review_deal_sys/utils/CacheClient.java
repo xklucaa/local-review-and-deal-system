@@ -87,10 +87,17 @@ public class CacheClient {
         R r = JSONUtil.toBean((JSONObject) redisData.getData(), type);
         LocalDateTime expireTime = redisData.getExpireTime();
         //        5. Judge if expired
-        if (expireTime.isAfter(LocalDateTime.now())) {
-            //        5.1 If not expired, return shop info
+        if (expireTime == null) {
+            return null;
+        } else if (expireTime.isAfter(LocalDateTime.now())) {
             return r;
         }
+//        if (expireTime.isAfter(LocalDateTime.now())) {
+//            //        5.1 If not expired, return shop info
+//            return r;
+//        } else if (expireTime == null) {
+//            return null;
+//        }
         //        5.2 If expired, cache rebuild is needed
         //        6 Cache rebuild
         //        6.1 Get mutex
@@ -114,6 +121,56 @@ public class CacheClient {
             });
         }
         //        6.4 If unsuccessful, return expired shop info
+        return r;
+    }
+
+
+    public <R, ID> R queryWithMutex(
+            String keyPrefix, ID id, Class<R> type, Function<ID, R> dbFallback, Long time, TimeUnit unit) {
+        String key = keyPrefix + id;
+        // 1.Search shop cache from Redis
+        String shopJson = stringRedisTemplate.opsForValue().get(key);
+        // 2.Judge if exist in the cache
+        if (StrUtil.isNotBlank(shopJson)) {
+            // 3.If exists, return
+            return JSONUtil.toBean(shopJson, type);
+        }
+        // Judge if the target is null
+        if (shopJson != null) {
+            // Return error message
+            return null;
+        }
+
+        // 4.Implement cache rebuilding
+        // 4.1.Get mutex
+        String lockKey = LOCK_SHOP_KEY + id;
+        R r = null;
+        try {
+            boolean isLock = tryLock(lockKey);
+            // 4.2.Judge if the lock is successfully obtained
+            if (!isLock) {
+                // 4.3.If unsuccessful, return error message
+                Thread.sleep(50);
+                return queryWithMutex(keyPrefix, id, type, dbFallback, time, unit);
+            }
+            // 4.4.If successful, create independent thread and build cache
+            r = dbFallback.apply(id);
+            // 5.If not exists, return error message
+            if (r == null) {
+                // Write the null into Redis
+                stringRedisTemplate.opsForValue().set(key, "", CACHE_NULL_TTL, TimeUnit.MINUTES);
+                // Return error message
+                return null;
+            }
+            // 6.If exists in database, return data and write into Redis
+            this.set(key, r, time, unit);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }finally {
+            // 7.Release mutex
+            unLock(lockKey);
+        }
+        // 8.return
         return r;
     }
 

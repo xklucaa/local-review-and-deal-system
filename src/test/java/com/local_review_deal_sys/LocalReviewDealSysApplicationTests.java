@@ -2,6 +2,7 @@ package com.local_review_deal_sys;
 
 import com.local_review_deal_sys.entity.Shop;
 import com.local_review_deal_sys.service.impl.ShopServiceImpl;
+import com.local_review_deal_sys.utils.UserHolder;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.geo.Point;
@@ -53,6 +54,8 @@ class LocalReviewDealSysApplicationTests {
             stringRedisTemplate.opsForGeo().add(key, locations);
         }
     }
+
+
 
 
 }

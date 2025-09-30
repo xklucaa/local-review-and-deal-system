@@ -113,7 +113,11 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
                 .queryWithLogicalExpire(CACHE_SHOP_KEY, id, Shop.class,this::getById, CACHE_SHOP_TTL, TimeUnit.MINUTES);
 
         if (shop == null){
-            return Result.fail("Error: Shop not found !");
+            shop = cacheClient
+                    .queryWithMutex(CACHE_SHOP_KEY, id, Shop.class,this::getById, CACHE_SHOP_TTL, TimeUnit.MINUTES);
+            if (shop == null) {
+                return Result.fail("Error: Shop not found !");
+            }
         }
 //        7.Return
         return Result.ok(shop);

@@ -41,6 +41,8 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
     private ISeckillVoucherService seckillVoucherService;
 
     @Resource
+    private RedisIdWorker redisIdWorker;
+    @Resource
     private RedissonClient redissonClient;
     @Resource
     private StringRedisTemplate stringRedisTemplate;
@@ -102,7 +104,7 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
     @Transactional
     public void createVoucherOrder(VoucherOrder voucherOrder) {
         //5.一人一单
-        Long userId = UserHolder.getUser().getId();
+        Long userId = voucherOrder.getId();
 
         //5.1查询订单
         int count = query().eq("user_id", userId).eq("voucher_id", voucherOrder.getVoucherId()).count();
