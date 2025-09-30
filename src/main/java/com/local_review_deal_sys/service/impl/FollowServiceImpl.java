@@ -75,10 +75,10 @@ public class FollowServiceImpl extends ServiceImpl<FollowMapper, Follow> impleme
             return Result.ok(Collections.emptyList());
         }
         List<Long> ids = intersect.stream().map(Long::valueOf).collect(Collectors.toList());
-        userService.listByIds(ids)
+        List<UserDTO> users = userService.listByIds(ids)
                 .stream()
                 .map(user -> BeanUtil.copyProperties(user, UserDTO.class))
                 .collect(Collectors.toList());
-        return Result.ok();
+        return Result.ok(users);
     }
 }

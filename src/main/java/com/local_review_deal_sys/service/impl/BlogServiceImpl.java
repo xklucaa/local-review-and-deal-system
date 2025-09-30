@@ -29,6 +29,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import static com.local_review_deal_sys.utils.RedisConstants.BLOG_LIKED_KEY;
+import static com.local_review_deal_sys.utils.RedisConstants.FEED_KEY;
 
 /**
  * <p>
@@ -109,7 +110,7 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IB
         }
         // 如果未点赞，可以点赞
 
-        return null;
+        return Result.ok();
     }
 
     @Override
@@ -151,39 +152,59 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IB
 
     @Override
     public Result queryBlogOfFollow(Long max, Integer offset) {
+        // 1.获取当前用户
         Long userId = UserHolder.getUser().getId();
-        String key = "feed:" + userId;
+        // 2.查询收件箱 ZREVRANGEBYSCORE key Max Min LIMIT offset count
+        String key = FEED_KEY + userId;
         Set<ZSetOperations.TypedTuple<String>> typedTuples = stringRedisTemplate.opsForZSet()
                 .reverseRangeByScoreWithScores(key, 0, max, offset, 2);
+        // 3.非空判断
         if (typedTuples == null || typedTuples.isEmpty()) {
             return Result.ok();
         }
+        // 4.解析数据：blogId、minTime（时间戳）、offset
         List<Long> ids = new ArrayList<>(typedTuples.size());
-        long minTime = 0;
-        int offset1 = 1;
-        for (ZSetOperations.TypedTuple<String> tuple : typedTuples) {
+        long minTime = 0; // 2
+git        int os = 1; // 2
+        for (ZSetOperations.TypedTuple<String> tuple : typedTuples) { // 5 4 4 2 2
+            // 4.1.获取id
             ids.add(Long.valueOf(tuple.getValue()));
-
+            // 4.2.获取分数(时间戳）
             long time = tuple.getScore().longValue();
-            if (time == minTime) {
-                offset1++;
-            } else {
+            if(time == minTime){
+                os++;
+            }else{
                 minTime = time;
-                offset1 = 1;
+                os = 1;
             }
         }
+
+        // 5.根据id查询blog
         String idStr = StrUtil.join(",", ids);
         List<Blog> blogs = query().in("id", ids).last("ORDER BY FIELD(id," + idStr + ")").list();
+
         for (Blog blog : blogs) {
+            // 5.1.查询blog有关的用户
             queryBlogUser(blog);
+            // 5.2.查询blog是否被点赞
             isBlogLiked(blog);
         }
+
+        // 6.封装并返回
         ScrollResult r = new ScrollResult();
         r.setList(blogs);
-        r.setOffset(offset1);
+        r.setOffset(os);
         r.setMinTime(minTime);
 
         return Result.ok(r);
+    }
+
+    @Override
+    public Result checkLiked(List<Blog> records) {
+        records.forEach(blog -> {
+            this.isBlogLiked(blog);
+        });
+        return Result.ok(records);
     }
 
     private void queryBlogUser(Blog blog) {

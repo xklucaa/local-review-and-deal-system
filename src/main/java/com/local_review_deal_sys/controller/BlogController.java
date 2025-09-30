@@ -26,6 +26,7 @@ public class BlogController {
 
     @PostMapping
     public Result saveBlog(@RequestBody Blog blog) {
+
         return blogService.saveBlog(blog);
     }
 
@@ -56,7 +57,7 @@ public class BlogController {
                 .eq("user_id", id).page(new Page<>(current, SystemConstants.MAX_PAGE_SIZE));
         // 获取当前页数据
         List<Blog> records = page.getRecords();
-        return Result.ok(records);
+        return blogService.checkLiked(records);
     }
 
     @GetMapping("/hot")

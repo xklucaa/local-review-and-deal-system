@@ -4,6 +4,8 @@ import com.local_review_deal_sys.dto.Result;
 import com.local_review_deal_sys.entity.Blog;
 import com.baomidou.mybatisplus.extension.service.IService;
 
+import java.util.List;
+
 /**
  * <p>
  *  服务类
@@ -23,4 +25,6 @@ public interface IBlogService extends IService<Blog> {
     Result saveBlog(Blog blog);
 
     Result queryBlogOfFollow(Long max, Integer offset);
+
+    Result checkLiked(List<Blog> records);
 }
