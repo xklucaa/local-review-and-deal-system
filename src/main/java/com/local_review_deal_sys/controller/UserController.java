@@ -1,29 +1,19 @@
 package com.local_review_deal_sys.controller;
 
 
-import cn.hutool.core.bean.BeanUtil;
-
 import com.local_review_deal_sys.dto.LoginFormDTO;
 import com.local_review_deal_sys.dto.Result;
 import com.local_review_deal_sys.dto.UserDTO;
-import com.local_review_deal_sys.entity.User;
 import com.local_review_deal_sys.entity.UserInfo;
 import com.local_review_deal_sys.service.IUserInfoService;
 import com.local_review_deal_sys.service.IUserService;
 import com.local_review_deal_sys.utils.UserHolder;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
-
 import javax.annotation.Resource;
 import javax.servlet.http.HttpSession;
 
-/**
- * <p>
- * 前端控制器
- * </p>
- *
- * @author 虎哥
- */
+
 @Slf4j
 @RestController
 @RequestMapping("/user")
@@ -35,12 +25,9 @@ public class UserController {
     @Resource
     private IUserInfoService userInfoService;
 
-    /**
-     * 发送手机验证码
-     */
     @PostMapping("code")
     public Result sendCode(@RequestParam("phone") String phone, HttpSession session) {
-        // 发送短信验证码并保存验证码
+        // send code and store the code in session
         return userService.sendCode(phone, session);
     }
 
@@ -50,8 +37,7 @@ public class UserController {
      */
     @PostMapping("/login")
     public Result login(@RequestBody LoginFormDTO loginForm, HttpSession session){
-        // 实现登录功能
-        return userService.login(loginForm, session);
+        return userService.login(loginForm,session);
     }
 
     /**
@@ -64,9 +50,8 @@ public class UserController {
         return Result.fail("功能未完成");
     }
 
-    @GetMapping("/musere")
+    @GetMapping("/me")
     public Result me(){
-        // 获取当前登录的用户并返回
         UserDTO user = UserHolder.getUser();
         return Result.ok(user);
     }
@@ -83,27 +68,5 @@ public class UserController {
         info.setUpdateTime(null);
         // 返回
         return Result.ok(info);
-    }
-
-    @GetMapping("/{id}")
-    public Result queryUserById(@PathVariable("id") Long userId){
-        // 查询详情
-        User user = userService.getById(userId);
-        if (user == null) {
-            return Result.ok();
-        }
-        UserDTO userDTO = BeanUtil.copyProperties(user, UserDTO.class);
-        // 返回
-        return Result.ok(userDTO);
-    }
-
-    @PostMapping("/sign")
-    public Result sign(){
-        return userService.sign();
-    }
-
-    @GetMapping("/sign/count")
-    public Result signCount(){
-        return userService.signCount();
     }
 }
