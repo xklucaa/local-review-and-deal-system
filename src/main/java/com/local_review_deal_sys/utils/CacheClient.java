@@ -20,7 +20,10 @@ import static com.local_review_deal_sys.utils.RedisConstants.*;
 @Component
 public class CacheClient {
 
-    private StringRedisTemplate stringRedisTemplate;
+    private final StringRedisTemplate stringRedisTemplate;
+    //    build Tread pool
+    private static final ExecutorService CACHE_REBUILD_EXECUTOR = Executors.newFixedThreadPool(10);
+
     public CacheClient(StringRedisTemplate stringRedisTemplate) {
         this.stringRedisTemplate = stringRedisTemplate;
     }
@@ -28,6 +31,7 @@ public class CacheClient {
     public void set(String key, Object value, Long time, TimeUnit unit) {
         stringRedisTemplate.opsForValue().set(key, JSONUtil.toJsonStr(value), time, unit);
     }
+
     public void setWithLogicalExpire(String key, Object value, Long time, TimeUnit unit) {
 //        set logic expire
         RedisData redisData = new RedisData();
@@ -37,23 +41,23 @@ public class CacheClient {
         stringRedisTemplate.opsForValue().set(key, JSONUtil.toJsonStr(redisData));
     }
 
-    public <R,ID> R  queryWithPassThrough(Long time, TimeUnit unit,
-            String keyPrefix, ID id, Class<R> type, Function<ID, R> dbFallback){
+    public <R, ID> R queryWithPassThrough(Long time, TimeUnit unit,
+                                          String keyPrefix, ID id, Class<R> type, Function<ID, R> dbFallback) {
         String key = keyPrefix + id;
 //        1.Search shop cache from Redis
-        String json= stringRedisTemplate.opsForValue().get(key);
+        String json = stringRedisTemplate.opsForValue().get(key);
 //        2.Judge if exist in the cache
-        if (StrUtil.isNotBlank(json)){
+        if (StrUtil.isNotBlank(json)) {
             //        3.If exists, return
             return JSONUtil.toBean(json, type);
         }
 //        Judge if the target is null
-        if (json != null){
+        if (json != null) {
 //            Return error message
             return null;
         }
         //        4.If not exist, search from database by id
-        R r = dbFallback.apply( id);
+        R r = dbFallback.apply(id);
         //        5.If still not exists, return false
         if (r == null) {
 //            Write the null into Redis
@@ -69,15 +73,13 @@ public class CacheClient {
         return r;
     }
 
-    //    build Tread pool
-    private static final ExecutorService CACHE_REBUILD_EXECUTOR = Executors.newFixedThreadPool(10);
 
-    public <R,ID> R queryWithLogicalExpire(String keyPrefix, ID id, Class<R> type, Function<ID, R> dbFallback,Long time, TimeUnit unit) {
+    public <R, ID> R queryWithLogicalExpire(String keyPrefix, ID id, Class<R> type, Function<ID, R> dbFallback, Long time, TimeUnit unit) {
         String key = keyPrefix + id;
 //        1.Search shop cache from Redis
-        String shopJson= stringRedisTemplate.opsForValue().get(key);
+        String shopJson = stringRedisTemplate.opsForValue().get(key);
 //        2.Judge if exist in the cache
-        if (StrUtil.isBlank(shopJson)){
+        if (StrUtil.isBlank(shopJson)) {
             //        3.If exists, return
             return null;
         }
@@ -87,8 +89,10 @@ public class CacheClient {
         R r = JSONUtil.toBean((JSONObject) redisData.getData(), type);
         LocalDateTime expireTime = redisData.getExpireTime();
         //        5. Judge if expired
-        if (expireTime.isAfter(LocalDateTime.now())) {
-            //        5.1 If not expired, return shop info
+        if (expireTime == null) {
+            return null;
+        }else if (expireTime.isAfter(LocalDateTime.now())){
+        //        5.1 If not expired, return shop info
             return r;
         }
         //        5.2 If expired, cache rebuild is needed
@@ -98,12 +102,12 @@ public class CacheClient {
         boolean isLock = tryLock(lockKey);
 
         //        6.2 Judge if the lock is successfully obtained
-        if (isLock){
+        if (isLock) {
             //        6.3 If successfully obtained, create independent thread and build cache
             CACHE_REBUILD_EXECUTOR.submit(() -> {
                 try {
 //                    search in the DB
-                    R r1= dbFallback.apply(id);
+                    R r1 = dbFallback.apply(id);
 //                    write into Redis
                     this.setWithLogicalExpire(key, r1, time, unit);
                 } catch (Exception e) {
@@ -114,6 +118,55 @@ public class CacheClient {
             });
         }
         //        6.4 If unsuccessful, return expired shop info
+        return r;
+    }
+
+    public <R, ID> R queryWithMutex(
+            String keyPrefix, ID id, Class<R> type, Function<ID, R> dbFallback, Long time, TimeUnit unit) {
+        String key = keyPrefix + id;
+        // 1.Search shop cache from Redis
+        String shopJson = stringRedisTemplate.opsForValue().get(key);
+        // 2.Judge if exist in the cache
+        if (StrUtil.isNotBlank(shopJson)) {
+            // 3.If exists, return
+            return JSONUtil.toBean(shopJson, type);
+        }
+        // Judge if the target is null
+        if (shopJson != null) {
+            // Return error message
+            return null;
+        }
+
+        // 4.Implement cache rebuilding
+        // 4.1.Get mutex
+        String lockKey = LOCK_SHOP_KEY + id;
+        R r = null;
+        try {
+            boolean isLock = tryLock(lockKey);
+            // 4.2.Judge if the lock is successfully obtained
+            if (!isLock) {
+                // 4.3.If unsuccessful, return error message
+                Thread.sleep(50);
+                return queryWithMutex(keyPrefix, id, type, dbFallback, time, unit);
+            }
+            // 4.4.If successful, create independent thread and build cache
+            r = dbFallback.apply(id);
+            // 5.If not exists, return error message
+            if (r == null) {
+                // Write the null into Redis
+                stringRedisTemplate.opsForValue().set(key, "", CACHE_NULL_TTL, TimeUnit.MINUTES);
+                // Return error message
+                return null;
+            }
+            // 6.If exists in database, return data and write into Redis
+            this.set(key, r, time, unit);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        } finally {
+            // 7.Release mutex
+            unLock(lockKey);
+        }
+        // 8.return
         return r;
     }
 

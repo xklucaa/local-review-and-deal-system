@@ -35,24 +35,25 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
 //        Resolve cache penetration
 //        Shop shop = cacheClient.queryWithPassThrough(CACHE_SHOP_TTL, TimeUnit.MINUTES, CACHE_SHOP_KEY, id, Shop.class,this::getById);
 
-//        Use mutex to solve the problem of cache penetration
-//        Shop shop = queryWithMutex(id);
-
+//
 //        Use logic expire to solve the problem of cache penetration
         Shop shop = cacheClient
-                .queryWithLogicalExpire(CACHE_SHOP_KEY, id, Shop.class,this::getById, CACHE_SHOP_TTL, TimeUnit.MINUTES);
+                .queryWithLogicalExpire(CACHE_SHOP_KEY, id, Shop.class, this::getById, CACHE_SHOP_TTL, TimeUnit.MINUTES);
 
-        if (shop == null){
-            return Result.fail("Error: Shop not found !");
+        if (shop == null) {
+//            Use mutex to solve the problem of cache penetration
+            shop = cacheClient.queryWithMutex(CACHE_SHOP_KEY, id, Shop.class,this::getById, CACHE_SHOP_TTL, TimeUnit.MINUTES);
+            if (shop == null) {
+                return Result.fail("Error: Shop not found !");
+            }
         }
 //        7.Return
-            return Result.ok(shop);
+        return Result.ok(shop);
 
     }
 
 
-
-    public void saveShopToRedis(Long id , long expireSeconds) {
+    public void saveShopToRedis(Long id, long expireSeconds) {
 //        1.Search shop data
         Shop shop = getById(id);
 //        Thread.sleep(200);
@@ -68,7 +69,7 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
     @Transactional
     public Result update(Shop shop) {
         Long id = shop.getId();
-        if (id == null){
+        if (id == null) {
             return Result.fail("Invalid id: Shop id cannot be null");
         }
 //        1.Update database
