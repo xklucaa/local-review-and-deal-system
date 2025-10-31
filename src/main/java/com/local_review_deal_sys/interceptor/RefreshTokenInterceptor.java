@@ -27,30 +27,6 @@ public class RefreshTokenInterceptor implements HandlerInterceptor{
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
-
-
-
-
-        /*
-        //1. get session
-        HttpSession session = request.getSession();
-        //2. get the user from the session
-        Object user = session.getAttribute("user");
-        //3. user exits? (401 == unathorized)
-        if(user == null){
-            //if not exists, then intercept it
-            response.setStatus(401);
-            return false;
-        }
-
-        //if exists, then store the user in ThreadLocal
-        UserHolder.saveUser((UserDTO) user);
-
-        //continue
-        return true;
-
-         */
-
         //1. 获取请求头的token
         String token = request.getHeader("authorization");
         //2. 基于token获取redis用户

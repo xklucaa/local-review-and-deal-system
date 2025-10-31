@@ -2,7 +2,9 @@ package com.local_review_deal_sys.controller;
 
 
 import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.util.StrUtil;
 import com.local_review_deal_sys.dto.LoginFormDTO;
+import com.local_review_deal_sys.dto.PasswordLoginForm;
 import com.local_review_deal_sys.dto.Result;
 import com.local_review_deal_sys.dto.UserDTO;
 import com.local_review_deal_sys.entity.User;
@@ -13,6 +15,7 @@ import com.local_review_deal_sys.utils.UserHolder;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 
 
@@ -28,28 +31,39 @@ public class UserController {
     private IUserInfoService userInfoService;
 
     @PostMapping("code")
-    public Result sendCode(@RequestParam("phone") String phone, HttpSession session) {
+    public Result sendCode(@RequestParam("email") String email, HttpSession session) {
         // send code and store the code in session
-        return userService.sendCode(phone, session);
+        return userService.sendCode(email, session);
     }
 
     /**
      * 登录功能
-     * @param loginForm 登录参数，包含手机号、验证码；或者手机号、密码
+     * @param loginForm 登录参数，包含邮箱账号、验证码；或者邮箱账号、密码
      */
     @PostMapping("/login")
     public Result login(@RequestBody LoginFormDTO loginForm, HttpSession session){
-        return userService.login(loginForm,session);
+        return userService.login(loginForm, session);
     }
+
+    @PostMapping("/loginByPassword")
+    public Result loginByPassword(@RequestBody PasswordLoginForm loginForm, HttpSession session) {
+        return userService.loginByPassword(loginForm, session);
+    }
+
+
+
+
+
 
     /**
      * 登出功能
      * @return 无
      */
     @PostMapping("/logout")
-    public Result logout(){
+    public Result logout(HttpServletRequest request){
         // TODO 实现登出功能
-        return Result.fail("功能未完成");
+
+        return userService.logout(request);
     }
 
     @GetMapping("/me")
