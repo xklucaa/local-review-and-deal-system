@@ -40,14 +40,14 @@ pipeline {
         stage('Docker Build & Push') {
             steps {
                 echo '🐳 Building images with docker-compose...'
-                sh 'docker compose -f ${COMPOSE_FILE} build --scale backend=2'
+                sh 'docker compose -f ${COMPOSE_FILE} build'
             }
         }
 
         stage('Deploy with Docker Compose') {
             steps {
                 echo '🚀 Starting all services...'
-                sh 'docker compose -f ${COMPOSE_FILE} up -d'
+                sh 'docker compose -f ${COMPOSE_FILE} up -d --scale backend=2'
             }
         }
     }
