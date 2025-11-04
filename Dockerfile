@@ -1,4 +1,4 @@
-FROM openjdk:8-jdk-slim
+FROM amazoncorretto:8-alpine-jre
 
 WORKDIR /app
 
