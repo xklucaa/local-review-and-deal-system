@@ -154,7 +154,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
 
         //6.4 set token expire time
         stringRedisTemplate.expire(LOGIN_USER_KEY + token,LOGIN_USER_TTL,TimeUnit.SECONDS);
-//        loadShopData();
+        loadShopData();
         //6.4 return the token to the client side
         return Result.ok(token);
     }
