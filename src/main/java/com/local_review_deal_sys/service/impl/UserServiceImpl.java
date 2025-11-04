@@ -8,6 +8,7 @@ import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.local_review_deal_sys.dto.PasswordLoginForm;
 import com.local_review_deal_sys.dto.Result;
+import com.local_review_deal_sys.entity.Shop;
 import com.local_review_deal_sys.entity.User;
 import com.local_review_deal_sys.mapper.UserMapper;
 import com.local_review_deal_sys.service.IUserService;
@@ -15,6 +16,7 @@ import com.local_review_deal_sys.utils.MailMsg;
 import com.local_review_deal_sys.utils.PasswordTools;
 import com.local_review_deal_sys.utils.UserHolder;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.geo.Point;
 import org.springframework.data.redis.connection.BitFieldSubCommands;
 import com.local_review_deal_sys.dto.UserDTO;
 import com.local_review_deal_sys.entity.User;
@@ -22,6 +24,7 @@ import com.local_review_deal_sys.mapper.UserMapper;
 import com.local_review_deal_sys.service.IUserService;
 import com.local_review_deal_sys.utils.RegexUtils;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.connection.RedisGeoCommands;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import com.local_review_deal_sys.dto.LoginFormDTO;
@@ -33,6 +36,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -45,6 +49,7 @@ import javax.annotation.Resource;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static com.local_review_deal_sys.utils.RedisConstants.USER_SIGN_KEY;
 
@@ -64,6 +69,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
     private StringRedisTemplate stringRedisTemplate;
     @Autowired
     private MailMsg mailMsg;
+    @Resource
+    private ShopServiceImpl shopService;
 
 
     @Override
@@ -147,6 +154,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
 
         //6.4 set token expire time
         stringRedisTemplate.expire(LOGIN_USER_KEY + token,LOGIN_USER_TTL,TimeUnit.SECONDS);
+//        loadShopData();
         //6.4 return the token to the client side
         return Result.ok(token);
     }
@@ -269,5 +277,30 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
             num >>>= 1;
         }
         return Result.ok(count);
+    }
+
+    void loadShopData() {
+        // 1.查询店铺信息
+        List<Shop> list = shopService.list();
+        // 2.把店铺分组，按照typeId分组，typeId一致的放到一个集合
+        Map<Long, List<Shop>> map = list.stream().collect(Collectors.groupingBy(Shop::getTypeId));
+        // 3.分批完成写入Redis
+        for (Map.Entry<Long, List<Shop>> entry : map.entrySet()) {
+            // 3.1.获取类型id
+            Long typeId = entry.getKey();
+            String key = "shop:geo:" + typeId;
+            // 3.2.获取同类型的店铺的集合
+            List<Shop> value = entry.getValue();
+            List<RedisGeoCommands.GeoLocation<String>> locations = new ArrayList<>(value.size());
+            // 3.3.写入redis GEOADD key 经度 纬度 member
+            for (Shop shop : value) {
+                // stringRedisTemplate.opsForGeo().add(key, new Point(shop.getX(), shop.getY()), shop.getId().toString());
+                locations.add(new RedisGeoCommands.GeoLocation<>(
+                        shop.getId().toString(),
+                        new Point(shop.getX(), shop.getY())
+                ));
+            }
+            stringRedisTemplate.opsForGeo().add(key, locations);
+        }
     }
 }

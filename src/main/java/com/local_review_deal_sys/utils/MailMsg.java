@@ -40,7 +40,7 @@ public class MailMsg {
         //发给谁-》邮箱地址
         helper.setTo(email);
         //谁发的-》发送人邮箱
-        helper.setFrom("15218705521@163.com");
+        helper.setFrom("3326164223@qq.com");
         //将邮箱验证码以邮件地址为key存入redis,2分钟过期
         redisTemplate.opsForValue().set(LOGIN_CODE_KEY + email, code, Duration.ofMinutes(2));
         mailSender.send(mimeMessage);
