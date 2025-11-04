@@ -91,10 +91,15 @@ public class CacheClient {
         //        5. Judge if expired
         if (expireTime == null) {
             return null;
-        }else if (expireTime.isAfter(LocalDateTime.now())){
-        //        5.1 If not expired, return shop info
+        } else if (expireTime.isAfter(LocalDateTime.now())) {
             return r;
         }
+//        if (expireTime.isAfter(LocalDateTime.now())) {
+//            //        5.1 If not expired, return shop info
+//            return r;
+//        } else if (expireTime == null) {
+//            return null;
+//        }
         //        5.2 If expired, cache rebuild is needed
         //        6 Cache rebuild
         //        6.1 Get mutex
@@ -120,6 +125,7 @@ public class CacheClient {
         //        6.4 If unsuccessful, return expired shop info
         return r;
     }
+
 
     public <R, ID> R queryWithMutex(
             String keyPrefix, ID id, Class<R> type, Function<ID, R> dbFallback, Long time, TimeUnit unit) {
@@ -162,7 +168,7 @@ public class CacheClient {
             this.set(key, r, time, unit);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
-        } finally {
+        }finally {
             // 7.Release mutex
             unLock(lockKey);
         }
