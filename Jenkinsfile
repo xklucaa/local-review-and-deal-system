@@ -47,7 +47,7 @@ pipeline {
         stage('Deploy with Docker Compose') {
             steps {
                 echo '🚀 Starting all services...'
-                sh 'docker compose -f ${COMPOSE_FILE} up -d --scale backend=2'
+                sh 'docker compose -f ${COMPOSE_FILE} up -d'
             }
         }
     }
