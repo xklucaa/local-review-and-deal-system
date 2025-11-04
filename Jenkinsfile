@@ -19,20 +19,28 @@ pipeline {
         stage('Build') {
             steps {
                 echo '🛠️ Building project with auto-installed Maven...'
-                sh 'mvn clean install -DskipTests'
+                sh 'mvn clean compile'
             }
         }
 
-//         stage('Test') {
-//             steps {
-//                 sh 'mvn test'
-//             }
-//         }
+        stage('Test') {
+            steps {
+                echo '🧪 Running unit tests with Maven...'
+                sh 'mvn test'
+            }
+        }
 
         stage('Docker Build & Push') {
             steps {
                 echo '🐳 Building images with docker-compose...'
                 sh 'docker compose -f ${COMPOSE_FILE} build'
+            }
+        }
+
+        stage('Package') {
+            steps {
+                echo '📦 Packaging application (jar)...'
+                sh 'mvn package -DskipTests' // 打包时可以跳过测试，加快速度
             }
         }
 
