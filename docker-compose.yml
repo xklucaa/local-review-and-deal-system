@@ -9,8 +9,8 @@ services:
     ports:
       - "80:80"
     volumes:
-      - ./nginx/dist:/usr/share/nginx/html
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - /home/ubuntu/local_review_deal_sys/nginx/dist:/usr/share/nginx/html
+      - /home/ubuntu/local_review_deal_sys/nginx/nginx.conf:/etc/nginx/nginx.conf
     depends_on:
       - mysql
       - redis
@@ -29,7 +29,7 @@ services:
       - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
-      - ./mysql/init:/docker-entrypoint-initdb.d
+      - /home/ubuntu/local_review_deal_sys/mysql/init:/docker-entrypoint-initdb.d
     command:
       - --default-authentication-plugin=mysql_native_password
       - --character-set-server=utf8mb4
@@ -46,7 +46,7 @@ services:
       - "6379:6379"
     volumes:
       - redis_data:/data
-      - ./redis/redis.conf:/etc/redis/redis.conf
+      - /home/ubuntu/local_review_deal_sys/redis/redis.conf:/etc/redis/redis.conf
     command: redis-server /etc/redis/redis.conf
     networks:
       - review-network
