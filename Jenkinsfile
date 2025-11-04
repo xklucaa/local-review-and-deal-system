@@ -40,7 +40,7 @@ pipeline {
         stage('Docker Build & Push') {
             steps {
                 echo '🐳 Building images with docker-compose...'
-                sh 'docker compose -f ${COMPOSE_FILE} build'
+                sh 'docker compose -f ${COMPOSE_FILE} build --scale backend=2'
             }
         }
 
