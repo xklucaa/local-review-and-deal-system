@@ -30,17 +30,17 @@ pipeline {
             }
         }
 
-        stage('Docker Build & Push') {
-            steps {
-                echo '🐳 Building images with docker-compose...'
-                sh 'docker compose -f ${COMPOSE_FILE} build'
-            }
-        }
-
         stage('Package') {
             steps {
                 echo '📦 Packaging application (jar)...'
                 sh 'mvn package -DskipTests' // 打包时可以跳过测试，加快速度
+            }
+        }
+
+        stage('Docker Build & Push') {
+            steps {
+                echo '🐳 Building images with docker-compose...'
+                sh 'docker compose -f ${COMPOSE_FILE} build'
             }
         }
 
