@@ -60,6 +60,8 @@ services:
     restart: always
     ports:
       - "8080:8080"
+    volumes:
+      - /home/ubuntu/local_review_deal_sys/nginx/dist/imgs:/usr/share/nginx/html/imgs
     environment:
       - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/hmdp
       - SPRING_REDIS_HOST=redis
