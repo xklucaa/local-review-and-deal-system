@@ -105,9 +105,7 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
 //        Resolve cache penetration
 //        Shop shop = cacheClient.queryWithPassThrough(CACHE_SHOP_TTL, TimeUnit.MINUTES, CACHE_SHOP_KEY, id, Shop.class,this::getById);
 
-//        Use mutex to solve the problem of cache penetration
-//        Shop shop = queryWithMutex(id);
-
+//
 //        Use logic expire to solve the problem of cache penetration
         Shop shop = cacheClient
                 .queryWithLogicalExpire(CACHE_SHOP_KEY, id, Shop.class,this::getById, CACHE_SHOP_TTL, TimeUnit.MINUTES);
@@ -139,7 +137,7 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
     @Transactional
     public Result update(Shop shop) {
         Long id = shop.getId();
-        if (id == null){
+        if (id == null) {
             return Result.fail("Invalid id: Shop id cannot be null");
         }
 //        1.Update database
