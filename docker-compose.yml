@@ -12,8 +12,7 @@ services:
       - /home/ubuntu/local_review_deal_sys/nginx/dist:/usr/share/nginx/html
       - /home/ubuntu/local_review_deal_sys/nginx/nginx.conf:/etc/nginx/nginx.conf
     depends_on:
-      - mysql
-      - redis
+      - backend
     networks:
       - review-network
 
@@ -56,10 +55,7 @@ services:
     build:
       context: ./
       dockerfile: Dockerfile
-    container_name: review-backend
     restart: always
-    ports:
-      - "8080:8080"
     volumes:
       - /home/ubuntu/local_review_deal_sys/nginx/dist/imgs:/usr/share/nginx/html/imgs
     environment:
