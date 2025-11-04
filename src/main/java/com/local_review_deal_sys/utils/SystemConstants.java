@@ -1,7 +1,7 @@
 package com.local_review_deal_sys.utils;
 
 public class SystemConstants {
-    public static final String IMAGE_UPLOAD_DIR = "/usr/share/nginx/html/src/components/imgs";
+    public static final String IMAGE_UPLOAD_DIR = "/usr/share/nginx/html/imgs";
     public static final String USER_NICK_NAME_PREFIX = "user_";
     public static final int DEFAULT_PAGE_SIZE = 5;
     public static final int MAX_PAGE_SIZE = 10;
