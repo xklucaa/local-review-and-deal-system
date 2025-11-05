@@ -36,6 +36,7 @@ class UserInfoServiceImplTest {
     @Test
     void testSaveUserInfo_success() {
         UserInfo userInfo = new UserInfo();
+        userInfo.setUserId(1L);
         userInfo.setGender(false);
 
         when(userInfoMapper.insert(any(UserInfo.class))).thenReturn(1);
@@ -49,6 +50,7 @@ class UserInfoServiceImplTest {
     @Test
     void testGetById_success() {
         UserInfo user = new UserInfo();
+        user.setUserId(2L);
 
 
         when(userInfoMapper.selectById(2L)).thenReturn(user);
@@ -61,15 +63,14 @@ class UserInfoServiceImplTest {
 
     @Test
     void testListAllUsers_success() {
-        UserInfo u1 = new UserInfo(); u1.setId(1L); u1.setName("Tom");
-        UserInfo u2 = new UserInfo(); u2.setId(2L); u2.setName("Jerry");
+        UserInfo u1 = new UserInfo(); u1.setUserId(1L);
+        UserInfo u2 = new UserInfo(); u2.setUserId(2L);
 
         when(userInfoMapper.selectList(null)).thenReturn(Arrays.asList(u1, u2));
 
         List<UserInfo> result = userInfoService.list();
 
         assertEquals(2, result.size());
-        assertEquals("Tom", result.get(0).getName());
         verify(userInfoMapper, times(1)).selectList(null);
     }
 
@@ -86,7 +87,7 @@ class UserInfoServiceImplTest {
     @Test
     void testSaveUserInfo_failure() {
         UserInfo userInfo = new UserInfo();
-        userInfo.setId(5L);
+        userInfo.setUserId(5L);
 
         when(userInfoMapper.insert(any(UserInfo.class))).thenReturn(0);
 
