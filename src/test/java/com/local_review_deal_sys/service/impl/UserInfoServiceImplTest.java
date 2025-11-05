@@ -61,15 +61,15 @@ class UserInfoServiceImplTest {
 
     @Test
     void testListAllUsers_success() {
-        UserInfo u1 = new UserInfo(); u1.setId(1L); u1.setNickName("Tom");
-        UserInfo u2 = new UserInfo(); u2.setId(2L); u2.setNickName("Jerry");
+        UserInfo u1 = new UserInfo(); u1.setId(1L); u1.setName("Tom");
+        UserInfo u2 = new UserInfo(); u2.setId(2L); u2.setName("Jerry");
 
         when(userInfoMapper.selectList(null)).thenReturn(Arrays.asList(u1, u2));
 
         List<UserInfo> result = userInfoService.list();
 
         assertEquals(2, result.size());
-        assertEquals("Tom", result.get(0).getNickName());
+        assertEquals("Tom", result.get(0).getName());
         verify(userInfoMapper, times(1)).selectList(null);
     }
 
