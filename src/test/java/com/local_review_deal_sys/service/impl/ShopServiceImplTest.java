@@ -3,7 +3,6 @@ package com.local_review_deal_sys.service.impl;
 import com.local_review_deal_sys.dto.Result;
 import com.local_review_deal_sys.entity.Shop;
 import com.local_review_deal_sys.mapper.ShopMapper;
-import com.local_review_deal_sys.service.IShopService;
 import com.local_review_deal_sys.utils.CacheClient;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -13,13 +12,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 
-import java.time.LocalDateTime;
-
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-class ShopServiceUnitTest {
+class ShopServiceImplTest {
 
     @InjectMocks  // 自动注入 mocks 到这个实例中
     private ShopServiceImpl shopService;
