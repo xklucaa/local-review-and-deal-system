@@ -1,4 +1,5 @@
-package com.local_review_deal_sys.service.login;
+package com.local_review_deal_sys.abstractLogin;
+
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.bean.copier.CopyOptions;

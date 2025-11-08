@@ -6,12 +6,14 @@ import cn.hutool.core.lang.UUID;
 import cn.hutool.core.util.RandomUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.local_review_deal_sys.abstractLogin.AbstractLoginTemplate;
 import com.local_review_deal_sys.dto.PasswordLoginForm;
 import com.local_review_deal_sys.dto.Result;
 import com.local_review_deal_sys.entity.Shop;
 import com.local_review_deal_sys.entity.User;
 import com.local_review_deal_sys.mapper.UserMapper;
 import com.local_review_deal_sys.service.IUserService;
+import com.local_review_deal_sys.service.login.EmailRegisterLoginService;
 import com.local_review_deal_sys.utils.MailMsg;
 import com.local_review_deal_sys.utils.PasswordTools;
 import com.local_review_deal_sys.utils.UserHolder;
@@ -99,64 +101,19 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
     }
 
 
-    @Override
     public Result login(LoginFormDTO loginForm, HttpSession session) {
-        String email = loginForm.getEmail();
-        String password = loginForm.getPassword();
-        String confirmPassword = loginForm.getConfirmPassword();
-        //1. check the email number
-        if (RegexUtils.isEmailInvalid(email)) {
-            //if email number is invalid, return a failure message
-            return Result.fail("Invalid email number");
+
+        AbstractLoginTemplate loginTemplate =
+                new EmailRegisterLoginService(stringRedisTemplate, this);
+
+        Result result = loginTemplate.login(loginForm);
+
+        // 登录成功时加载商店数据
+        if (result.getData() != null) {
+            loadShopData();
         }
 
-        // check if the email has been registered
-        if (query().eq("email", email).count() > 0) {
-            return Result.fail("Email already registered");
-        }
-
-        // check if the passwords equals confirmPasswords
-        if (!password.equals(confirmPassword)) {
-            return Result.fail("Passwords do not match");
-        }
-
-
-        // check the verification code, now we get it from redis
-        String cacheCode = stringRedisTemplate.opsForValue().get(LOGIN_CODE_KEY + email);
-        String code = loginForm.getCode();
-        if (cacheCode == null || !cacheCode.equals(code)) {
-            // if not true, then return a failure message
-            return Result.fail("Invalid verification code");
-        }
-
-        // if true, then query the user by the email number
-        User user = query().eq("email", email).one();
-
-        // if the user does not exist, then create a new user and store it to DB
-
-        if(user == null){
-            user = createUserWithEmail(email, password);
-            //save the suer to DB
-            save(user);
-        }
-        // then store the user to redis
-        // generate a token for login  ==>key
-        String token = UUID.randomUUID().toString(true);
-        // transfer the user to hash to store  ==>value
-        UserDTO userDTO = BeanUtil.copyProperties(user, UserDTO.class);
-        Map<String, Object> userMap = BeanUtil.beanToMap(userDTO, new HashMap<>(),
-                CopyOptions.create()
-                        .setIgnoreNullValue(true)
-                        .setFieldValueEditor((fieldName, value) -> value == null ? null : value.toString()));
-
-        //6.3 store it to redis
-        stringRedisTemplate.opsForHash().putAll(LOGIN_USER_KEY + token,userMap);
-
-        //6.4 set token expire time
-        stringRedisTemplate.expire(LOGIN_USER_KEY + token,LOGIN_USER_TTL,TimeUnit.SECONDS);
-        loadShopData();
-        //6.4 return the token to the client side
-        return Result.ok(token);
+        return result;
     }
 
     @Override
