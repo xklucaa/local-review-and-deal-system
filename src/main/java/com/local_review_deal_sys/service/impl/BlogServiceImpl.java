@@ -22,6 +22,8 @@ import com.local_review_deal_sys.utils.UserHolder;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 
 import javax.annotation.Resource;
 import java.util.ArrayList;
@@ -229,5 +231,38 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IB
         User user = userService.getById(userId);
         blog.setName(user.getNickName());
         blog.setIcon(user.getIcon());
+    }
+
+    @Override
+    public Result deleteBlog(Long id) {
+        // 获取当前登录用户
+        UserDTO user = UserHolder.getUser();
+        if (user == null) {
+            return Result.fail("用户未登录");
+        }
+
+        // 查询博客是否存在
+        Blog blog = getById(id);
+        if (blog == null) {
+            return Result.fail("博客不存在");
+        }
+
+        // 检查是否是博客的所有者
+        if (!blog.getUserId().equals(user.getId())) {
+            return Result.fail("没有权限删除该博客");
+        }
+
+        // 删除博客
+        boolean isSuccess = removeById(id);
+        if (!isSuccess) {
+            return Result.fail("删除失败");
+        }
+
+        // 删除相关的点赞数据（如果有的话）
+        stringRedisTemplate.delete(BLOG_LIKED_KEY + id);
+
+        // 可以考虑删除相关的评论等数据
+
+        return Result.ok("删除成功");
     }
 }

@@ -81,4 +81,9 @@ public class BlogController {
             @RequestParam(value = "offset", defaultValue = "0") Integer offset) {
         return blogService.queryBlogOfFollow(max, offset);
     }
+
+    @DeleteMapping("/{id}")
+    public Result deleteBlog(@PathVariable("id") Long id) {
+        return blogService.deleteBlog(id);
+    }
 }
