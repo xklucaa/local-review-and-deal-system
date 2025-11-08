@@ -24,22 +24,22 @@ public class PasswordLoginService extends AbstractLoginTemplate {
         String email = form.getEmail();
         String password = form.getPassword();
 
-        // ① 邮箱格式校验
+        //  邮箱格式校验
         if (RegexUtils.isEmailInvalid(email)) {
             return null;
         }
 
-        // ② 查询用户
+        //  查询用户
         User user = userService.query().eq("email", email).one();
         if (user == null) {
             return null; // 用户不存在
         }
 
-        // ③ 密码比对
+        // 密码比对
         if (!PasswordTools.decrypt(password, user.getPassword())) {
             return null; // 密码不正确
         }
 
-        return user; // ✅ 返回用户，父类负责写入 Redis + 返回 token
+        return user; // 返回用户，父类负责写入 Redis + 返回 token
     }
 }
