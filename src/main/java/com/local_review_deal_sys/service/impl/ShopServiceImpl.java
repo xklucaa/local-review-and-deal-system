@@ -1,6 +1,7 @@
 package com.local_review_deal_sys.service.impl;
 
 import cn.hutool.json.JSONUtil;
+import com.local_review_deal_sys.cache.strategy.CacheStrategy;
 import com.local_review_deal_sys.dto.Result;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -38,6 +39,9 @@ import static com.local_review_deal_sys.utils.RedisConstants.CACHE_SHOP_TTL;
  */
 @Service
 public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IShopService {
+
+    @Resource
+    private Map<String, CacheStrategy> cacheStrategies;
 
     @Resource
     private StringRedisTemplate stringRedisTemplate;
@@ -102,22 +106,30 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
 
     @Override
     public Result queryById(Long id) {
-//        Resolve cache penetration
-//        Shop shop = cacheClient.queryWithPassThrough(CACHE_SHOP_TTL, TimeUnit.MINUTES, CACHE_SHOP_KEY, id, Shop.class,this::getById);
+        // 1 Select Strategy
+        // Use logical expire strategy as default
+        CacheStrategy strategy = cacheStrategies.get("logicalExpireStrategy");
 
-//
-//        Use logic expire to solve the problem of cache penetration
-        Shop shop = cacheClient
-                .queryWithLogicalExpire(CACHE_SHOP_KEY, id, Shop.class,this::getById, CACHE_SHOP_TTL, TimeUnit.MINUTES);
+        // 2  Query
+        Shop shop = strategy.query(
+                CACHE_SHOP_KEY, id, Shop.class,
+                this::getById, CACHE_SHOP_TTL, TimeUnit.MINUTES
+        );
 
-        if (shop == null){
-            shop = cacheClient
-                    .queryWithMutex(CACHE_SHOP_KEY, id, Shop.class,this::getById, CACHE_SHOP_TTL, TimeUnit.MINUTES);
+        // 3 If unsuccessful, use mutex strategy
+        if (shop == null) {
+            CacheStrategy fallbackStrategy = cacheStrategies.get("mutexStrategy");
+            shop = fallbackStrategy.query(
+                    CACHE_SHOP_KEY, id, Shop.class,
+                    this::getById, CACHE_SHOP_TTL, TimeUnit.MINUTES
+            );
+        //  3.1 If still unsuccessful, return error message
             if (shop == null) {
                 return Result.fail("Error: Shop not found !");
             }
         }
-//        7.Return
+
+        // 4. Return  result
         return Result.ok(shop);
     }
 
