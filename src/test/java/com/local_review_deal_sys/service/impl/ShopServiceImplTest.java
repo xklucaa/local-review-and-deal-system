@@ -1,5 +1,6 @@
 package com.local_review_deal_sys.service.impl;
 
+import com.local_review_deal_sys.cache.strategy.CacheStrategy;
 import com.local_review_deal_sys.dto.Result;
 import com.local_review_deal_sys.entity.Shop;
 import com.local_review_deal_sys.mapper.ShopMapper;
@@ -7,10 +8,15 @@ import com.local_review_deal_sys.utils.CacheClient;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.*;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.data.redis.core.ValueOperations;
+import org.springframework.test.util.ReflectionTestUtils;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -18,7 +24,7 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class ShopServiceImplTest {
 
-    @InjectMocks  // 自动注入 mocks 到这个实例中
+    @InjectMocks  // automatically injects mocks into this instance
     private ShopServiceImpl shopService;
 
     @Mock
@@ -28,31 +34,39 @@ class ShopServiceImplTest {
     private CacheClient cacheClient;
 
     @Mock
-    private ShopMapper shopMapper; // MyBatis-Plus Mapper 也会被 mock
+    private ShopMapper shopMapper;
+
+    // Added: mocks for cache strategies
+    @Mock
+    private CacheStrategy logicalExpireStrategy;
 
     @Mock
-    private ValueOperations<String, String> valueOps;
+    private CacheStrategy mutexStrategy;
 
     @BeforeEach
     void setUp() {
-        // 模拟 stringRedisTemplate.opsForValue() 返回 valueOps
-//        when(stringRedisTemplate.opsForValue()).thenReturn(valueOps);
+        // Manually build a map of strategies and inject it into the ShopServiceImpl
+        Map<String, CacheStrategy> strategyMap = new HashMap<>();
+        strategyMap.put("logicalExpireStrategy", logicalExpireStrategy);
+        strategyMap.put("mutexStrategy", mutexStrategy);
+
+        ReflectionTestUtils.setField(shopService, "cacheStrategies", strategyMap);
     }
 
-    // ==================== 测试 queryById ====================
+    // ==================== Tests for queryById ====================
 
     @Test
-    void queryById_ShouldReturnShopFromCacheClient_WhenFound() {
+    void queryById_ShouldReturnShopFromLogicalExpireStrategy_WhenFound() {
         // Given
         Long shopId = 1L;
         Shop expectedShop = new Shop();
         expectedShop.setId(shopId);
-        expectedShop.setName("测试店铺");
+        expectedShop.setName("Test Shop");
 
-        // 假设 cacheClient.queryWithLogicalExpire 成功返回店铺
-        when(cacheClient.queryWithLogicalExpire(
-                anyString(), eq(shopId), eq(Shop.class), any(), anyLong(), any()))
-                .thenReturn(expectedShop);
+        // Assume the logicalExpireStrategy.query successfully returns the shop
+        when(logicalExpireStrategy.query(
+                eq("cache:shop:"), eq(shopId), eq(Shop.class), any(), eq(30L), eq(TimeUnit.MINUTES)
+        )).thenReturn(expectedShop);
 
         // When
         Result result = shopService.queryById(shopId);
@@ -60,8 +74,12 @@ class ShopServiceImplTest {
         // Then
         assertTrue(result.getSuccess());
         assertEquals(expectedShop, result.getData());
-        verify(cacheClient, times(1)).queryWithLogicalExpire(
-                eq("cache:shop:"), eq(shopId), eq(Shop.class), any(), eq(30L), eq(java.util.concurrent.TimeUnit.MINUTES));
+
+        // Verify only logicalExpireStrategy.query was called
+        verify(logicalExpireStrategy, times(1)).query(
+                eq("cache:shop:"), eq(shopId), eq(Shop.class), any(), eq(30L), eq(TimeUnit.MINUTES)
+        );
+        verify(mutexStrategy, never()).query(anyString(), any(), any(), any(), anyLong(), any());
     }
 
     @Test
@@ -69,18 +87,18 @@ class ShopServiceImplTest {
         // Given
         Long shopId = 1L;
 
-        // 第一次调用返回 null（逻辑过期失效）
-        when(cacheClient.queryWithLogicalExpire(
-                anyString(), eq(shopId), eq(Shop.class), any(), anyLong(), any()))
-                .thenReturn(null);
+        // logicalExpireStrategy returns null first
+        when(logicalExpireStrategy.query(
+                eq("cache:shop:"), eq(shopId), eq(Shop.class), any(), eq(30L), eq(TimeUnit.MINUTES)
+        )).thenReturn(null);
 
-        // 回退到互斥锁模式，假设这次找到了
+        // Then fallback to mutexStrategy, which returns a valid shop
         Shop fallbackShop = new Shop();
         fallbackShop.setId(shopId);
-        fallbackShop.setName("回退店铺");
-        when(cacheClient.queryWithMutex(
-                anyString(), eq(shopId), eq(Shop.class), any(), anyLong(), any()))
-                .thenReturn(fallbackShop);
+        fallbackShop.setName("Fallback Shop");
+        when(mutexStrategy.query(
+                eq("cache:shop:"), eq(shopId), eq(Shop.class), any(), eq(30L), eq(TimeUnit.MINUTES)
+        )).thenReturn(fallbackShop);
 
         // When
         Result result = shopService.queryById(shopId);
@@ -88,22 +106,28 @@ class ShopServiceImplTest {
         // Then
         assertTrue(result.getSuccess());
         assertEquals(fallbackShop, result.getData());
-        verify(cacheClient).queryWithMutex(
-                eq("cache:shop:"), eq(shopId), eq(Shop.class), any(), eq(30L), eq(java.util.concurrent.TimeUnit.MINUTES));
+
+        // Verify both strategies were called in order
+        verify(logicalExpireStrategy, times(1)).query(
+                eq("cache:shop:"), eq(shopId), eq(Shop.class), any(), eq(30L), eq(TimeUnit.MINUTES)
+        );
+        verify(mutexStrategy, times(1)).query(
+                eq("cache:shop:"), eq(shopId), eq(Shop.class), any(), eq(30L), eq(TimeUnit.MINUTES)
+        );
     }
 
     @Test
-    void queryById_ShouldReturnFailResult_WhenBothCacheStrategiesReturnNull() {
+    void queryById_ShouldReturnFailResult_WhenBothStrategiesReturnNull() {
         // Given
         Long shopId = 1L;
 
-        when(cacheClient.queryWithLogicalExpire(
-                anyString(), eq(shopId), eq(Shop.class), any(), anyLong(), any()))
-                .thenReturn(null);
+        when(logicalExpireStrategy.query(
+                eq("cache:shop:"), eq(shopId), eq(Shop.class), any(), eq(30L), eq(TimeUnit.MINUTES)
+        )).thenReturn(null);
 
-        when(cacheClient.queryWithMutex(
-                anyString(), eq(shopId), eq(Shop.class), any(), anyLong(), any()))
-                .thenReturn(null);
+        when(mutexStrategy.query(
+                eq("cache:shop:"), eq(shopId), eq(Shop.class), any(), eq(30L), eq(TimeUnit.MINUTES)
+        )).thenReturn(null);
 
         // When
         Result result = shopService.queryById(shopId);
@@ -111,25 +135,32 @@ class ShopServiceImplTest {
         // Then
         assertFalse(result.getSuccess());
         assertEquals("Error: Shop not found !", result.getErrorMsg());
+
+        verify(logicalExpireStrategy, times(1)).query(
+                eq("cache:shop:"), eq(shopId), eq(Shop.class), any(), eq(30L), eq(TimeUnit.MINUTES)
+        );
+        verify(mutexStrategy, times(1)).query(
+                eq("cache:shop:"), eq(shopId), eq(Shop.class), any(), eq(30L), eq(TimeUnit.MINUTES)
+        );
     }
 
-    // ==================== 测试 update ====================
+    // ==================== Tests for update ====================
 
     @Test
     void update_ShouldUpdateDBAndDeleteCache_WhenValidShop() {
         // Given
         Shop shop = new Shop();
         shop.setId(1L);
-        shop.setName("更新后的店铺");
+        shop.setName("Updated Shop");
 
         // When
         Result result = shopService.update(shop);
 
         // Then
         assertTrue(result.getSuccess());
-        // 验证 updateById 被调用了一次
+        // Verify database update called once
         verify(shopMapper, times(1)).updateById(shop);
-        // 验证 Redis 删除缓存被调用
+        // Verify Redis cache deletion called once
         verify(stringRedisTemplate, times(1)).delete("cache:shop:1");
     }
 
@@ -144,9 +175,8 @@ class ShopServiceImplTest {
         // Then
         assertFalse(result.getSuccess());
         assertEquals("Invalid id: Shop id cannot be null", result.getErrorMsg());
-        // 确保没有调用数据库或 Redis
+        // Verify no DB or Redis operations executed
         verify(shopMapper, never()).updateById(any());
         verify(stringRedisTemplate, never()).delete(anyString());
     }
-
 }
