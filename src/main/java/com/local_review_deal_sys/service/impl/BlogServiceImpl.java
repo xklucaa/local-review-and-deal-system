@@ -11,6 +11,8 @@ import com.local_review_deal_sys.entity.Blog;
 import com.local_review_deal_sys.entity.Follow;
 import com.local_review_deal_sys.entity.User;
 import com.local_review_deal_sys.mapper.BlogMapper;
+import com.local_review_deal_sys.observer.BlogObserver;
+import com.local_review_deal_sys.observer.BlogSubject;
 import com.local_review_deal_sys.service.IBlogService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.local_review_deal_sys.service.IFollowService;
@@ -40,7 +42,11 @@ import static com.local_review_deal_sys.utils.RedisConstants.FEED_KEY;
  * @since 2021-12-22
  */
 @Service
-public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IBlogService {
+public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IBlogService, BlogSubject {
+
+
+    // 添加观察者列表
+    private final List<BlogObserver> observers = new ArrayList<>();
 
     @Resource
     private IUserService userService;
@@ -51,6 +57,22 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IB
     private IFollowService followService;
 
 
+    @Override
+    public void addObserver(BlogObserver observer) {
+        observers.add(observer);
+    }
+
+    @Override
+    public void removeObserver(BlogObserver observer) {
+        observers.remove(observer);
+    }
+
+    @Override
+    public void notifyObservers(Blog blog) {
+        for (BlogObserver observer : observers) {
+            observer.onBlogPublished(blog);
+        }
+    }
     @Override
     public Result queryBlogById(Long id) {
         Blog blog = getById(id);
@@ -140,12 +162,14 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IB
         if (!isSuccess) {
             return Result.fail("新增笔记失败");
         }
-        List<Follow> follows = followService.query().eq("follow_user_id", user.getId()).eq("follow_user_id", user.getId()).list();
-        for (Follow follow : follows){
-            Long userId = follow.getUserId();
-            String key = "feed:" + userId;
-            stringRedisTemplate.opsForZSet().add(key, blog.getId().toString(), System.currentTimeMillis());
-        }
+//        List<Follow> follows = followService.query().eq("follow_user_id", user.getId()).eq("follow_user_id", user.getId()).list();
+//        for (Follow follow : follows){
+//            Long userId = follow.getUserId();
+//            String key = "feed:" + userId;
+//            stringRedisTemplate.opsForZSet().add(key, blog.getId().toString(), System.currentTimeMillis());
+//        }
+        // 通知所有观察者
+        notifyObservers(blog);
         // 返回id
         return Result.ok(blog.getId());
     }
