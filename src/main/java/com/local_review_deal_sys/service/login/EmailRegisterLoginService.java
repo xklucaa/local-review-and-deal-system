@@ -19,7 +19,8 @@ public class EmailRegisterLoginService extends AbstractLoginTemplate {
     }
 
     @Override
-    protected User authenticate(LoginFormDTO loginForm) {
+    protected User authenticate(Object formObj) {
+        LoginFormDTO loginForm = (LoginFormDTO) formObj;
 
         String email = loginForm.getEmail();
         String password = loginForm.getPassword();

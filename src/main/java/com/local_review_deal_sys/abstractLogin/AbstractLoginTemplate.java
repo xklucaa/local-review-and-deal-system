@@ -25,31 +25,30 @@ public abstract class AbstractLoginTemplate {
     }
 
     // ★ 模板方法：登录对外只暴露这个
-    public Result login(LoginFormDTO loginForm) {
+    public Result login(Object form) {
         // 1. 参数校验
-        if (!checkParam(loginForm)) {
+        if (!checkParam(form)) {
             return Result.fail("Invalid input");
         }
 
-        // 2. 认证（变化点：不同登录方式不同）
-        User user = authenticate(loginForm);
-        if(user == null){
+        // 2. 认证（变化点）
+        User user = authenticate(form); // ← 不再强制 LoginFormDTO
+        if (user == null) {
             return Result.fail("Authentication failed");
         }
 
-        // 3. 成功后保存 session/token
+        // 3. 登录成功 → 生成 token
         String token = saveUserToRedis(user);
-
         return Result.ok(token);
     }
 
-    // 通用校验
-    protected boolean checkParam(LoginFormDTO loginForm) {
-        return loginForm != null && loginForm.getPhone() != null;
+    // 通用校验（如果是邮箱校验在子类执行也可以，这里保底）
+    protected boolean checkParam(Object form) {
+        return form != null;
     }
 
-    // ★ 抽象方法：把认证逻辑交给子类
-    protected abstract User authenticate(LoginFormDTO loginForm);
+    // ★ 抽象方法：交给子类自己解析 form
+    protected abstract User authenticate(Object form);
 
     // 登录成功后写入 redis（通用逻辑）
     protected String saveUserToRedis(User user) {

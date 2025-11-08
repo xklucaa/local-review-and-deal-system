@@ -14,6 +14,7 @@ import com.local_review_deal_sys.entity.User;
 import com.local_review_deal_sys.mapper.UserMapper;
 import com.local_review_deal_sys.service.IUserService;
 import com.local_review_deal_sys.service.login.EmailRegisterLoginService;
+import com.local_review_deal_sys.service.login.PasswordLoginService;
 import com.local_review_deal_sys.utils.MailMsg;
 import com.local_review_deal_sys.utils.PasswordTools;
 import com.local_review_deal_sys.utils.UserHolder;
@@ -128,43 +129,12 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
 
     @Override
     public Result loginByPassword(PasswordLoginForm loginForm, HttpSession session) {
-        String email = loginForm.getEmail();
-        String password = loginForm.getPassword();
-
-        //1. check the email number
-        if (RegexUtils.isEmailInvalid(email)) {
-            //if email number is invalid, return a failure message
-            return Result.fail("Invalid email number");
-        }
-
-        // 2. check if the email has been registered
-        User user = query().eq("email", email).one();
-        if (user == null) {
-            return Result.fail("Email has not been registered");
-        }
-
-        // 3. check if the passwords equals the one in DB
-        if (!PasswordTools.decrypt(password, user.getPassword())) { // 或者使用加密校验逻辑
-            return Result.fail("密码错误");
-        }
-
-        String token = UUID.randomUUID().toString(true);
-        // transfer the user to hash to store  ==>value
-        UserDTO userDTO = BeanUtil.copyProperties(user, UserDTO.class);
-        Map<String, Object> userMap = BeanUtil.beanToMap(userDTO, new HashMap<>(),
-                CopyOptions.create()
-                        .setIgnoreNullValue(true)
-                        .setFieldValueEditor((fieldName, value) -> value == null ? null : value.toString()));
-
-        //6.3 store it to redis
-        stringRedisTemplate.opsForHash().putAll(LOGIN_USER_KEY + token,userMap);
-
-        //6.4 set token expire time
-        stringRedisTemplate.expire(LOGIN_USER_KEY + token,LOGIN_USER_TTL,TimeUnit.SECONDS);
-        loadShopData();
-        //6.4 return the token to the client side
-        return Result.ok(token);
+        AbstractLoginTemplate template = new PasswordLoginService(stringRedisTemplate, this);
+        Result result = template.login(loginForm);
+        if(result.getData()!=null) loadShopData();
+        return result;
     }
+
 
 
     private User createUserWithEmail(String email, String password) {
