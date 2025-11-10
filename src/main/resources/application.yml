@@ -5,9 +5,9 @@ spring:
     name: local_review_deal_sys
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://mysql:3306/hmdp?useSSL=false&serverTimezone=UTC
-    username: root
-    password: root
+    url: jdbc:mysql://db-mysql-sgp1-32416-do-user-25486340-0.i.db.ondigitalocean.com:25060/defaultdb?useSSL=true&requireSSL=true&serverTimezone=UTC
+    username: doadmin
+    password: AVNS_L3eJUhzgFPQIbfLhgT_
   redis:
     host: redis
     port: 6379
